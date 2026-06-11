@@ -16,7 +16,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/4firas/pi-jules"
+    "url": "git+https://github.com/4firas/pi-jules.git"
   },
   "homepage": "https://github.com/4firas/pi-jules#readme",
   "bugs": {
