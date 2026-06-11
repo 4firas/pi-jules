@@ -1,6 +1,6 @@
 {
   "name": "pi-jules",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Delegate coding tasks to Jules from Pi. Async background agent with live status, completion notifications, and kaomoji.",
   "keywords": [
     "pi-package",
@@ -27,7 +27,9 @@
     "README.md"
   ],
   "pi": {
-    "extensions": ["./extensions/pi-jules.ts"]
+    "extensions": [
+      "./extensions/pi-jules.ts"
+    ]
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
