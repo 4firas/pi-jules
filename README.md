@@ -21,10 +21,10 @@ Plus `/jules` and `/jules list` commands for quick access.
 ## Prerequisites
 
 ```bash
-# Install Jules CLI
-npm install -g @anthropic-ai/jules-cli
+# Install Jules CLI (see https://jules.google for installation)
+npm install -g jules-cli  # or however you installed it
 
-# Login
+# Login to your Google account
 jules login
 ```
 
