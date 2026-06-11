@@ -15,6 +15,39 @@ interface JulesSession {
   status: string;
 }
 
+// ─── Kaomoji ─────────────────────────────────────────────────────────────────
+
+const FACES = {
+  ready:     "(^-^)",
+  planning:  "(・_・)",
+  running:   "(>_<)",
+  completed: "(^_^)",
+  failed:    "(x_x)",
+  cancelled: "(-_-)",
+  error:     "(◎_◎)",
+  unknown:   "(?_?)",
+  working:   "(^_^)ノ",
+  idle:      "(._.)",
+  unavailable: "(¬_¬)",
+} as const;
+
+function statusFace(status: string): string {
+  switch (status.toLowerCase()) {
+    case "planning":    return FACES.planning;
+    case "running":     return FACES.running;
+    case "completed":   return FACES.completed;
+    case "failed":      return FACES.failed;
+    case "cancelled":   return FACES.cancelled;
+    case "error":       return FACES.error;
+    default:            return FACES.unknown;
+  }
+}
+
+function isActive(status: string): boolean {
+  const s = status.toLowerCase();
+  return s === "planning" || s === "running" || s === "in_progress" || s === "queued";
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 async function run(cmd: string, timeout = 30000): Promise<{ stdout: string; stderr: string }> {
@@ -32,10 +65,9 @@ async function fetchSessions(): Promise<JulesSession[]> {
 
 function parseSessionList(output: string): JulesSession[] {
   const lines = output.trim().split("\n").filter(l => l.trim());
-  if (lines.length <= 1) return []; // header only or empty
+  if (lines.length <= 1) return [];
 
   return lines.slice(1).map(line => {
-    // Columns are space-aligned; split by 2+ spaces
     const cols = line.trim().split(/\s{2,}/);
     return {
       id: cols[0]?.trim() || "",
@@ -47,28 +79,11 @@ function parseSessionList(output: string): JulesSession[] {
   }).filter(s => s.id);
 }
 
-function statusFace(status: string): string {
-  switch (status.toLowerCase()) {
-    case "planning":    return "🤔";
-    case "running":     return "⚡";
-    case "completed":   return "✅";
-    case "failed":      return "💀";
-    case "cancelled":   return "🚫";
-    case "error":       return "❌";
-    default:            return "❓";
-  }
-}
-
-function isActive(status: string): boolean {
-  const s = status.toLowerCase();
-  return s === "planning" || s === "running" || s === "in_progress" || s === "queued";
-}
-
 // ─── Extension ───────────────────────────────────────────────────────────────
 
 export default function (pi: ExtensionAPI) {
 
-  let knownCompleted = new Set<string>();   // track completions for notifications
+  let knownCompleted = new Set<string>();
   let isAvailable = false;
 
   // ── Status & Widget ──────────────────────────────────────────────────────
@@ -79,8 +94,8 @@ export default function (pi: ExtensionAPI) {
       isAvailable = true;
     } catch {
       isAvailable = false;
-      ctx.ui.setStatus("jules", "Jules unavailable ✗");
-      ctx.ui.setWidget("jules", ["⚠ Jules CLI not found or not logged in"]);
+      ctx.ui.setStatus("jules", `jules ${FACES.unavailable}`);
+      ctx.ui.setWidget("jules", [`${FACES.unavailable} jules cli not found or not logged in`]);
       return;
     }
 
@@ -88,37 +103,37 @@ export default function (pi: ExtensionAPI) {
     const active = sessions.filter(s => isActive(s.status));
 
     if (active.length === 0) {
-      ctx.ui.setStatus("jules", "Jules ready ^.^");
+      ctx.ui.setStatus("jules", `jules ${FACES.ready}`);
     } else {
-      const statuses = active.map(s => `${statusFace(s.status)}`).join("");
-      ctx.ui.setStatus("jules", `Jules working ${statuses} (${active.length} active) ^.^`);
+      const faces = active.map(s => statusFace(s.status)).join(" ");
+      ctx.ui.setStatus("jules", `jules ${FACES.working} ${faces} (${active.length} active)`);
     }
 
-    // Widget: show active sessions above editor
+    // Widget above editor
     if (active.length > 0) {
-      const widgetLines = [
-        `🎯 Jules active sessions (${active.length})`,
+      const lines = [
+        `${FACES.working} jules active (${active.length})`,
         ...active.map(s => {
           const desc = s.description.length > 50 ? s.description.slice(0, 47) + "..." : s.description;
           return `  ${statusFace(s.status)} [${s.id.slice(-6)}] ${desc}  (${s.repo})`;
         }),
       ];
-      ctx.ui.setWidget("jules", widgetLines);
+      ctx.ui.setWidget("jules", lines);
     } else if (sessions.length > 0) {
       const completed = sessions.filter(s => s.status.toLowerCase() === "completed");
       if (completed.length > 0) {
         ctx.ui.setWidget("jules", [
-          `💤 Jules idle — ${completed.length} completed session${completed.length > 1 ? "s" : ""} ready to pull`,
+          `${FACES.idle} jules idle — ${completed.length} completed session${completed.length > 1 ? "s" : ""} ready to pull`,
         ]);
       } else {
-        ctx.ui.setWidget("jules", [`💤 Jules idle — ${sessions.length} session${sessions.length > 1 ? "s" : ""} total`]);
+        ctx.ui.setWidget("jules", [`${FACES.idle} jules idle — ${sessions.length} session${sessions.length > 1 ? "s" : ""} total`]);
       }
     } else {
-      ctx.ui.setWidget("jules", ["^.^ Jules ready — no sessions"]);
+      ctx.ui.setWidget("jules", [`${FACES.ready} jules ready — no sessions`]);
     }
   }
 
-  // ── Notify on completed sessions ─────────────────────────────────────────
+  // ── Completion notifications ─────────────────────────────────────────────
 
   async function checkForCompletions(ctx: any) {
     if (!isAvailable) return;
@@ -127,7 +142,7 @@ export default function (pi: ExtensionAPI) {
       if (s.status.toLowerCase() === "completed" && !knownCompleted.has(s.id)) {
         knownCompleted.add(s.id);
         const desc = s.description.length > 40 ? s.description.slice(0, 37) + "..." : s.description;
-        ctx.ui.notify(`Jules finished: ${desc} [${s.id.slice(-6)}]`, "success");
+        ctx.ui.notify(`jules done ${FACES.completed} ${desc} [${s.id.slice(-6)}]`, "success");
       }
     }
   }
@@ -138,7 +153,6 @@ export default function (pi: ExtensionAPI) {
     knownCompleted = new Set();
     await updateStatus(ctx);
 
-    // Mark already-completed sessions so we don't re-notify
     const sessions = await fetchSessions();
     for (const s of sessions) {
       if (s.status.toLowerCase() === "completed") {
@@ -147,7 +161,6 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  // Update status at the end of each agent turn (picks up new/changed sessions)
   pi.on("agent_end", async (_event, ctx) => {
     await checkForCompletions(ctx);
     await updateStatus(ctx);
@@ -183,7 +196,7 @@ export default function (pi: ExtensionAPI) {
         const sessionIdMatch = stdout.match(/(\d{10,})/);
         const sessionId = sessionIdMatch ? sessionIdMatch[1] : null;
 
-        let result = `✅ Jules session created!\n\n`;
+        let result = `${FACES.ready} jules session created!\n\n`;
         if (sessionId) result += `Session ID: ${sessionId}\n`;
         result += `\n${stdout}`;
         if (stderr && !stderr.includes("warning")) result += `\n${stderr}`;
@@ -194,7 +207,7 @@ export default function (pi: ExtensionAPI) {
         };
       } catch (error: any) {
         return {
-          content: [{ type: "text", text: `❌ Failed to create Jules session\n\n${error.message}` }],
+          content: [{ type: "text", text: `${FACES.failed} failed to create jules session\n\n${error.message}` }],
           details: { error: error.message },
           isError: true,
         };
@@ -221,7 +234,7 @@ export default function (pi: ExtensionAPI) {
 
         if (sessions.length === 0) {
           return {
-            content: [{ type: "text", text: "No Jules sessions found." }],
+            content: [{ type: "text", text: `${FACES.idle} no jules sessions found.` }],
             details: { sessions: [] },
           };
         }
@@ -229,13 +242,13 @@ export default function (pi: ExtensionAPI) {
         const active = sessions.filter(s => isActive(s.status));
         const completed = sessions.filter(s => s.status.toLowerCase() === "completed");
 
-        let result = `📋 ${sessions.length} session${sessions.length > 1 ? "s" : ""}`;
+        let result = `${FACES.ready} ${sessions.length} session${sessions.length > 1 ? "s" : ""}`;
         if (active.length > 0) result += ` — ${active.length} active`;
         if (completed.length > 0) result += ` — ${completed.length} completed`;
         result += "\n\n";
 
         if (active.length > 0) {
-          result += `🟢 Active:\n`;
+          result += `${FACES.working} active:\n`;
           for (const s of active) {
             result += `  ${statusFace(s.status)} ${s.id} — ${s.description} (${s.repo}) [${s.status}]\n`;
           }
@@ -243,16 +256,16 @@ export default function (pi: ExtensionAPI) {
         }
 
         if (completed.length > 0) {
-          result += `✅ Completed:\n`;
+          result += `${FACES.completed} completed:\n`;
           for (const s of completed) {
-            result += `  ✓ ${s.id} — ${s.description} (${s.repo})\n`;
+            result += `  ${FACES.completed} ${s.id} — ${s.description} (${s.repo})\n`;
           }
           result += "\n";
         }
 
         const other = sessions.filter(s => !isActive(s.status) && s.status.toLowerCase() !== "completed");
         if (other.length > 0) {
-          result += `Other:\n`;
+          result += `other:\n`;
           for (const s of other) {
             result += `  ${statusFace(s.status)} ${s.id} — ${s.description} (${s.repo}) [${s.status}]\n`;
           }
@@ -264,7 +277,7 @@ export default function (pi: ExtensionAPI) {
         };
       } catch (error: any) {
         return {
-          content: [{ type: "text", text: `❌ Failed to list sessions\n\n${error.message}` }],
+          content: [{ type: "text", text: `${FACES.failed} failed to list sessions\n\n${error.message}` }],
           details: { error: error.message },
           isError: true,
         };
@@ -295,8 +308,8 @@ export default function (pi: ExtensionAPI) {
 
         const { stdout, stderr } = await run(cmd, 60000);
 
-        const verb = params.apply ? "Applied" : "Pulled";
-        let result = `✅ ${verb} session ${params.sessionId}\n\n${stdout}`;
+        const verb = params.apply ? "applied" : "pulled";
+        let result = `${FACES.completed} ${verb} session ${params.sessionId}\n\n${stdout}`;
         if (stderr && !stderr.includes("warning")) result += `\n${stderr}`;
 
         return {
@@ -305,7 +318,7 @@ export default function (pi: ExtensionAPI) {
         };
       } catch (error: any) {
         return {
-          content: [{ type: "text", text: `❌ Failed to pull session ${params.sessionId}\n\n${error.message}\n\nSession may still be running.` }],
+          content: [{ type: "text", text: `${FACES.failed} failed to pull session ${params.sessionId}\n\n${error.message}\n\nSession may still be running.` }],
           details: { error: error.message, sessionId: params.sessionId },
           isError: true,
         };
@@ -331,7 +344,7 @@ export default function (pi: ExtensionAPI) {
       try {
         const { stdout, stderr } = await run(`jules teleport ${params.sessionId}`, 120000);
 
-        let result = `🚀 Teleported to session ${params.sessionId}\n\n${stdout}`;
+        let result = `${FACES.working} teleported to session ${params.sessionId}\n\n${stdout}`;
         if (stderr && !stderr.includes("warning")) result += `\n${stderr}`;
 
         return {
@@ -340,7 +353,7 @@ export default function (pi: ExtensionAPI) {
         };
       } catch (error: any) {
         return {
-          content: [{ type: "text", text: `❌ Teleport failed\n\n${error.message}` }],
+          content: [{ type: "text", text: `${FACES.failed} teleport failed\n\n${error.message}` }],
           details: { error: error.message, sessionId: params.sessionId },
           isError: true,
         };
@@ -366,8 +379,8 @@ export default function (pi: ExtensionAPI) {
         const active = sessions.filter(s => isActive(s.status));
         const completed = sessions.filter(s => s.status.toLowerCase() === "completed");
 
-        let result = `✅ Jules CLI ready ^,^\n\nVersion: ${version.trim()}\n`;
-        result += `\nSessions: ${sessions.length} total`;
+        let result = `${FACES.ready} jules cli ready\n\nVersion: ${version.trim()}\n`;
+        result += `\nsessions: ${sessions.length} total`;
         if (active.length > 0) result += `, ${active.length} active`;
         if (completed.length > 0) result += `, ${completed.length} completed`;
 
@@ -377,7 +390,7 @@ export default function (pi: ExtensionAPI) {
         };
       } catch (error: any) {
         return {
-          content: [{ type: "text", text: `❌ Jules CLI not available\n\n${error.message}\n\nRun 'jules login' to authenticate.` }],
+          content: [{ type: "text", text: `${FACES.unavailable} jules cli not available\n\n${error.message}\n\nrun 'jules login' to authenticate.` }],
           details: { error: error.message },
           isError: true,
         };
@@ -399,10 +412,10 @@ export default function (pi: ExtensionAPI) {
           const sessions = await fetchSessions();
           const active = sessions.filter(s => isActive(s.status));
           const completed = sessions.filter(s => s.status.toLowerCase() === "completed");
-          let msg = `^.^ Jules`;
+          let msg = `jules ${FACES.ready}`;
           if (active.length > 0) msg += ` — ${active.length} active`;
           if (completed.length > 0) msg += ` — ${completed.length} completed ready to pull`;
-          if (active.length === 0 && completed.length === 0) msg += ` — idle`;
+          if (active.length === 0 && completed.length === 0) msg += ` — idle ${FACES.idle}`;
           ctx.ui.notify(msg, "info");
           break;
         }
@@ -411,7 +424,7 @@ export default function (pi: ExtensionAPI) {
           const { stdout } = await run("jules remote list --session", 15000);
           pi.sendMessage({
             customType: "jules-sessions",
-            content: `📋 Jules Sessions\n\n${stdout}`,
+            content: `jules sessions\n\n${stdout}`,
             display: true,
           });
           break;
@@ -419,14 +432,14 @@ export default function (pi: ExtensionAPI) {
         case "check": {
           try {
             const { stdout } = await run("jules version", 5000);
-            ctx.ui.notify(`Jules CLI ${stdout.trim().split("\n")[0]} ^.^`, "info");
+            ctx.ui.notify(`jules ${stdout.trim().split("\n")[0]} ${FACES.ready}`, "info");
           } catch {
-            ctx.ui.notify("Jules CLI not available — run 'jules login'", "error");
+            ctx.ui.notify(`jules unavailable ${FACES.unavailable} — run 'jules login'`, "error");
           }
           break;
         }
         default:
-          ctx.ui.notify("Usage: /jules [status|list|check]", "info");
+          ctx.ui.notify("usage: /jules [status|list|check]", "info");
       }
     },
   });
