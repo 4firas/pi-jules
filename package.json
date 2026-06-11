@@ -1,0 +1,24 @@
+{
+  "name": "@fir4s/pi-jules",
+  "version": "1.0.0",
+  "description": "Seamless Jules CLI integration for Pi coding agent",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "jules",
+    "google-jules",
+    "coding-agent",
+    "async"
+  ],
+  "author": "fir4s",
+  "license": "MIT",
+  "pi": {
+    "extensions": ["./extensions/pi-jules.ts"]
+  },
+  "dependencies": {
+    "typebox": "^0.34.0"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "latest"
+  }
+}
