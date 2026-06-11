@@ -95,7 +95,7 @@ export default function (pi: ExtensionAPI) {
     } catch {
       isAvailable = false;
       ctx.ui.setStatus("jules", `jules ${FACES.unavailable}`);
-      ctx.ui.setWidget("jules", [`${FACES.unavailable} jules cli not found or not logged in`]);
+      // Widget removed - using setStatus only for footer display
       return;
     }
 
@@ -118,18 +118,16 @@ export default function (pi: ExtensionAPI) {
           return `  ${statusFace(s.status)} [${s.id.slice(-6)}] ${desc}  (${s.repo})`;
         }),
       ];
-      ctx.ui.setWidget("jules", lines);
+      // Widget removed - status shown in footer only
     } else if (sessions.length > 0) {
       const completed = sessions.filter(s => s.status.toLowerCase() === "completed");
       if (completed.length > 0) {
-        ctx.ui.setWidget("jules", [
-          `${FACES.idle} jules idle — ${completed.length} completed session${completed.length > 1 ? "s" : ""} ready to pull`,
-        ]);
+      // Widget removed - status shown in footer only
       } else {
-        ctx.ui.setWidget("jules", [`${FACES.idle} jules idle — ${sessions.length} session${sessions.length > 1 ? "s" : ""} total`]);
+      // Widget removed - status shown in footer only
       }
     } else {
-      ctx.ui.setWidget("jules", [`${FACES.ready} jules ready — no sessions`]);
+      // Widget removed - status shown in footer only
     }
   }
 
