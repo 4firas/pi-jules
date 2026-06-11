@@ -1,24 +1,36 @@
 {
-  "name": "@fir4s/pi-jules",
+  "name": "pi-jules",
   "version": "1.0.0",
-  "description": "Seamless Jules CLI integration for Pi coding agent",
+  "description": "Delegate coding tasks to Jules from Pi. Async background agent with live status, completion notifications, and kaomoji.",
   "keywords": [
     "pi-package",
     "pi-extension",
     "jules",
     "google-jules",
     "coding-agent",
-    "async"
+    "async",
+    "background-agent",
+    "delegation"
   ],
   "author": "fir4s",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/4firas/pi-jules"
+  },
+  "homepage": "https://github.com/4firas/pi-jules#readme",
+  "bugs": {
+    "url": "https://github.com/4firas/pi-jules/issues"
+  },
+  "files": [
+    "extensions/",
+    "README.md"
+  ],
   "pi": {
     "extensions": ["./extensions/pi-jules.ts"]
   },
-  "dependencies": {
-    "typebox": "^0.34.0"
-  },
-  "devDependencies": {
-    "@earendil-works/pi-coding-agent": "latest"
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
   }
 }
