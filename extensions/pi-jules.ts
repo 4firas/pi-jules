@@ -105,29 +105,7 @@ export default function (pi: ExtensionAPI) {
     if (active.length === 0) {
       ctx.ui.setStatus("jules", `jules ${FACES.ready}`);
     } else {
-      const faces = active.map(s => statusFace(s.status)).join(" ");
-      ctx.ui.setStatus("jules", `jules ${FACES.working} ${faces} (${active.length} active)`);
-    }
-
-    // Widget above editor
-    if (active.length > 0) {
-      const lines = [
-        `${FACES.working} jules active (${active.length})`,
-        ...active.map(s => {
-          const desc = s.description.length > 50 ? s.description.slice(0, 47) + "..." : s.description;
-          return `  ${statusFace(s.status)} [${s.id.slice(-6)}] ${desc}  (${s.repo})`;
-        }),
-      ];
-      // Widget removed - status shown in footer only
-    } else if (sessions.length > 0) {
-      const completed = sessions.filter(s => s.status.toLowerCase() === "completed");
-      if (completed.length > 0) {
-      // Widget removed - status shown in footer only
-      } else {
-      // Widget removed - status shown in footer only
-      }
-    } else {
-      // Widget removed - status shown in footer only
+      ctx.ui.setStatus("jules", `jules ${FACES.running} (${active.length} active)`);
     }
   }
 
