@@ -1,6 +1,6 @@
 {
   "name": "pi-jules",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Delegate coding tasks to Jules from Pi. Async background agent with live status, completion notifications, and kaomoji.",
   "keywords": [
     "pi-package",
